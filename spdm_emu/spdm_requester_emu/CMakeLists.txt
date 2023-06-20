@@ -79,3 +79,5 @@ else()
     ADD_EXECUTABLE(spdm_requester_emu ${src_spdm_requester_emu})
     TARGET_LINK_LIBRARIES(spdm_requester_emu ${spdm_requester_emu_LIBRARY})
 endif()
+
+install (TARGETS spdm_requester_emu DESTINATION bin)

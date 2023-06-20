@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-project("spdm_emu" C)
+project("spdm_emu" LANGUAGES C CXX)
 
 #
 # Build Configuration Macro Definition
@@ -155,10 +155,14 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     SET(CMAKE_EXE_EXPORTS_C_FLAG "")
 
     if(TOOLCHAIN STREQUAL "GCC")
-        SET(CMAKE_C_COMPILER gcc)
-        ADD_COMPILE_OPTIONS(-std=c99 -g -fshort-wchar -fno-strict-aliasing -Wall -Werror -Wno-array-bounds -ffunction-sections -fdata-sections -fno-common -maccumulate-outgoing-args -mno-red-zone -Wno-address -fpie -fno-asynchronous-unwind-tables -flto -DUSING_LTO  -Wno-maybe-uninitialized -Wno-uninitialized  -Wno-builtin-declaration-mismatch -Wno-nonnull-compare)
+        #SET(CMAKE_C_COMPILER gcc)
+        #SET(CMAKE_CXX_COMPILER g++)
+        SET(CMAKE_C_COMPILER /opt/zhichuang/openbmc-builds/qemux86-64/tmp/work/core2-64-openbmc-linux/spdm-emu/1.0+git999-r1/recipe-sysroot-native/usr/bin/x86_64-openbmc-linux/x86_64-openbmc-linux-gcc)
+        SET(CMAKE_CXX_COMPILER /opt/zhichuang/openbmc-builds/qemux86-64/tmp/work/core2-64-openbmc-linux/spdm-emu/1.0+git999-r1/recipe-sysroot-native/usr/bin/x86_64-openbmc-linux/x86_64-openbmc-linux-g++)
+        #ADD_COMPILE_OPTIONS(-std=c99 -g -fshort-wchar -fno-strict-aliasing -Wall -Werror -Wno-array-bounds -ffunction-sections -fdata-sections -fno-common -maccumulate-outgoing-args -mno-red-zone -Wno-address -fpie -fno-asynchronous-unwind-tables -flto -DUSING_LTO  -Wno-maybe-uninitialized -Wno-uninitialized  -Wno-builtin-declaration-mismatch -Wno-nonnull-compare)
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -g -fshort-wchar -fno-strict-aliasing -Wall -Werror -Wno-array-bounds -ffunction-sections -fdata-sections -fno-common -maccumulate-outgoing-args -mno-red-zone -Wno-address -fpie -fno-asynchronous-unwind-tables -Wno-maybe-uninitialized -Wno-uninitialized -Wno-builtin-declaration-mismatch -Wno-nonnull-compare")
         if(GCOV STREQUAL "ON")
-            ADD_COMPILE_OPTIONS(--coverage -fprofile-arcs -ftest-coverage)
+            SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
         endif()
         SET(MBEDTLS_FLAGS "")
         SET(OPENSSL_FLAGS -include base.h -Wno-error=maybe-uninitialized -Wno-error=format -Wno-format -Wno-error=unused-but-set-variable)
@@ -639,6 +643,7 @@ endif()
     if(NOT TOOLCHAIN STREQUAL "ARM_DS2022")
     ADD_SUBDIRECTORY(spdm_emu/spdm_requester_emu)
     ADD_SUBDIRECTORY(spdm_emu/spdm_responder_emu)
+    ADD_SUBDIRECTORY(spdm_emu/spdm_dbus_requester_emu)
 
     ADD_SUBDIRECTORY(${COMMON_TEST_FRAMEWORK_DIR}/library/common_test_utility_lib out/common_test_utility_lib.out)
     ADD_SUBDIRECTORY(${SPDM_RESPONDER_VALIDATOR_DIR}/library/spdm_responder_conformance_test_lib out/spdm_responder_conformance_test_lib.out)

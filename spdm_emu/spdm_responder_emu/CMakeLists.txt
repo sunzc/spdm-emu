@@ -83,3 +83,5 @@ else()
     ADD_EXECUTABLE(spdm_responder_emu ${src_spdm_responder_emu})
     TARGET_LINK_LIBRARIES(spdm_responder_emu ${spdm_responder_emu_LIBRARY})
 endif()
+
+install (TARGETS spdm_responder_emu DESTINATION bin)
