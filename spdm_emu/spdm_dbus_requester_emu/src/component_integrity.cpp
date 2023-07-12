@@ -20,13 +20,13 @@ extern "C" {
     void *spdm_client_init(void);
     libspdm_return_t pci_doe_init_requester(void);
     SOCKET CreateSocketAndHandShake(SOCKET *sock, uint16_t port_number);
-    bool communicate_platform_data(SOCKET socket, uint32_t command,
+    bool communicate_platform_data(SOCKET socket, size_t command,
                                    const uint8_t *send_buffer, size_t bytes_to_send,
-                                   uint32_t *response,
+                                   size_t *response,
                                    size_t *bytes_to_receive,
                                    uint8_t *receive_buffer);
     #if LIBSPDM_ENABLE_CAPABILITY_MEAS_CAP
-    libspdm_return_t do_measurement_via_spdm(const uint32_t *session_id);
+    libspdm_return_t do_measurement_via_spdm(const size_t *session_id);
     #endif /*LIBSPDM_ENABLE_CAPABILITY_MEAS_CAP*/
     
     #if (LIBSPDM_ENABLE_CAPABILITY_CERT_CAP && LIBSPDM_ENABLE_CAPABILITY_CHAL_CAP)
@@ -34,13 +34,13 @@ extern "C" {
     #endif /*(LIBSPDM_ENABLE_CAPABILITY_CERT_CAP && LIBSPDM_ENABLE_CAPABILITY_CHAL_CAP)*/
     
     libspdm_return_t do_session_via_spdm(bool use_psk);
-    libspdm_return_t do_certificate_provising_via_spdm(uint32_t* session_id);
+    libspdm_return_t do_certificate_provising_via_spdm(size_t* session_id);
     
     bool platform_client_routine(uint16_t port_number)
     {
         SOCKET platform_socket;
         bool result;
-        uint32_t response;
+        size_t response;
         size_t response_size;
         libspdm_return_t status;
     
@@ -85,7 +85,7 @@ extern "C" {
         if (m_use_transport_layer == SOCKET_TRANSPORT_TYPE_PCI_DOE) {
             status = pci_doe_init_requester ();
             if (LIBSPDM_STATUS_IS_ERROR(status)) {
-                printf("pci_doe_init_requester - %x\n", (uint32_t)status);
+                printf("pci_doe_init_requester - %x\n", (size_t)status);
                 goto done;
             }
         }
@@ -99,7 +99,7 @@ extern "C" {
     #if (LIBSPDM_ENABLE_CAPABILITY_CERT_CAP && LIBSPDM_ENABLE_CAPABILITY_CHAL_CAP)
         status = do_authentication_via_spdm();
         if (LIBSPDM_STATUS_IS_ERROR(status)) {
-            printf("do_authentication_via_spdm - %x\n", (uint32_t)status);
+            printf("do_authentication_via_spdm - %x\n", (size_t)status);
             goto done;
         }
     #endif /*(LIBSPDM_ENABLE_CAPABILITY_CERT_CAP && LIBSPDM_ENABLE_CAPABILITY_CHAL_CAP)*/
@@ -109,7 +109,7 @@ extern "C" {
             status = do_measurement_via_spdm(NULL);
             if (LIBSPDM_STATUS_IS_ERROR(status)) {
                 printf("do_measurement_via_spdm - %x\n",
-                       (uint32_t)status);
+                       (size_t)status);
                 goto done;
             }
         }
@@ -120,7 +120,7 @@ extern "C" {
                 status = do_certificate_provising_via_spdm(NULL);
                 if (LIBSPDM_STATUS_IS_ERROR(status)) {
                     printf("do_certificate_provising_via_spdm - %x\n",
-                           (uint32_t)status);
+                           (size_t)status);
                     goto done;
                 }
             }
@@ -133,7 +133,7 @@ extern "C" {
                     status = do_session_via_spdm(false);
                     if (LIBSPDM_STATUS_IS_ERROR(status)) {
                         printf("do_session_via_spdm - %x\n",
-                               (uint32_t)status);
+                               (size_t)status);
                         goto done;
                     }
                 }
@@ -142,7 +142,7 @@ extern "C" {
                     status = do_session_via_spdm(true);
                     if (LIBSPDM_STATUS_IS_ERROR(status)) {
                         printf("do_session_via_spdm - %x\n",
-                               (uint32_t)status);
+                               (size_t)status);
                         goto done;
                     }
                 }
@@ -152,7 +152,7 @@ extern "C" {
                         status = do_session_via_spdm(false);
                         if (LIBSPDM_STATUS_IS_ERROR(status)) {
                             printf("do_session_via_spdm - %x\n",
-                                   (uint32_t)status);
+                                   (size_t)status);
                             goto done;
                         }
                     }
@@ -198,28 +198,18 @@ using ::sdbusplus::xyz::openbmc_project::Common::Error::InvalidArgument;
 } // namespace
 
 ComponentIntegrity::ComponentIntegrity(sdbusplus::bus::bus& bus, const char* path,
-                bool componentIntegrityEnabled,
-								sdbusplus::xyz::openbmc_project::server::ComponentIntegrity::SecurityTechnologyType
-								protocolType,
-								std::string& protocolTypeVersion, std::string& updatedTime,
-								sdbusplus::message::object_path& targetURI,
-								std::vector<sdbusplus::message::object_path> protectedComponents,
-								sdbusplus::message::object_path& requester,
-								sdbusplus::message::object_path& requesterAuthentication,
-								sdbusplus::message::object_path& responderAuthentication,
-	              sdbusplus::xyz::openbmc_project::ComponentIntegrity::SPDM::server::IdentityAuthentication::VerificationStatus status) :
+    bool componentIntegrityEnabled,
+    sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::ComponentIntegrity::SecurityTechnologyType protocolType,
+    std::string& protocolTypeVersion,
+    std::string& updatedTime,
+    sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::IdentityAuthentication::VerificationStatus status) :
     internal::ComponentIntegrityInterface(bus, path, action::defer_emit)
 {
-		this->enabled(componentIntegrityEnabled);
-		this->type(protocolType);
-		this->typeVersion(protocolTypeVersion);
-		this->lastUpdated(updatedTime);
-		this->targetComponentURI(targetURI);
-		this->componentsProtected(protectedComponents);
-		this->requester(requester);
-		this->requesterAuthentication(requesterAuthentication);
-		this->responderAuthentication(responderAuthentication);
-		this->responderVerificationStatus(status);
+	this->enabled(componentIntegrityEnabled);
+	this->type(protocolType);
+	this->typeVersion(protocolTypeVersion);
+	this->lastUpdated(updatedTime);
+	this->responderVerificationStatus(status);
 
     log<level::INFO>("ComponentIntegrity Instance Created!");
 }
@@ -232,9 +222,9 @@ ComponentIntegrity::~ComponentIntegrity()
 std::tuple<sdbusplus::message::object_path, std::string,
     std::string, std::string, std::string, std::string>
     ComponentIntegrity::spdmGetSignedMeasurements(
-        std::vector<uint32_t> measurementIndices,
+        std::vector<size_t> measurementIndices,
         std::string nonce,
-        uint32_t slotId) 
+        size_t slotId) 
 {
     sdbusplus::message::object_path
         certificate("/xyz/openbmc_project/certs/systems/system01/gf_cert1");

@@ -6,20 +6,18 @@
 #include <string>
 #include <string_view>
 #include <xyz/openbmc_project/Certs/Certificate/server.hpp>
-#include <xyz/openbmc_project/ComponentIntegrity/server.hpp>
-#include <xyz/openbmc_project/ComponentIntegrity/SPDM/server.hpp>
-#include <xyz/openbmc_project/ComponentIntegrity/SPDM/IdentityAuthentication/server.hpp>
-#include <xyz/openbmc_project/ComponentIntegrity/SPDM/MeasurementSet/server.hpp>
-#include <xyz/openbmc_project/Inventory/Item/Rot/server.hpp>
+#include <xyz/openbmc_project/Inventory/Decorator/ComponentIntegrity/server.hpp>
+#include <xyz/openbmc_project/Inventory/Decorator/IdentityAuthentication/server.hpp>
+#include <xyz/openbmc_project/Inventory/Decorator/MeasurementSet/server.hpp>
+#include <xyz/openbmc_project/Association/Definitions/server.hpp>
 
 namespace internal
 {
 using ComponentIntegrityInterface = sdbusplus::server::object_t<
-		sdbusplus::xyz::openbmc_project::Inventory::Item::server::Rot,
-		sdbusplus::xyz::openbmc_project::server::ComponentIntegrity,
-    sdbusplus::xyz::openbmc_project::ComponentIntegrity::server::SPDM,
-    sdbusplus::xyz::openbmc_project::ComponentIntegrity::SPDM::server::IdentityAuthentication,
-    sdbusplus::xyz::openbmc_project::ComponentIntegrity::SPDM::server::MeasurementSet>;
+    sdbusplus::xyz::openbmc_project::Association::server::Definitions,
+	sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::ComponentIntegrity,
+	sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::IdentityAuthentication,
+	sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::MeasurementSet>;
 } // namespace internal
 
 namespace phosphor::component_integrity
@@ -27,11 +25,10 @@ namespace phosphor::component_integrity
 
 /** @class ComponentIntegrity
  *  @brief OpenBMC ComponentIntegrity entry implementation.
- *  @details A concrete implementation for the
- *  xyz.openbmc_project.ComponentIntegrity DBus API
- *  xyz.openbmc_project.ComponentIntegrity.SPDM DBus API
- *  xyz.openbmc_project.ComponentIntegrity.SPDM.IdentityAuthentication DBus API
- *  xyz.openbmc_project.ComponentIntegrity.SPDM.MeasurementSet DBus API
+ *  @details A concrete implementation of 
+ *    xyz.openbmc_project.Inventory.Decorator.ComponentIntegrity DBus API
+ *    xyz.openbmc_project.Inventory.Decorator.IdentityAuthentication DBus API
+ *    xyz.openbmc_project.Inventory.Decorator.MeasurementSet DBus API
  */
 class ComponentIntegrity : public internal::ComponentIntegrityInterface
 {
@@ -49,22 +46,14 @@ class ComponentIntegrity : public internal::ComponentIntegrityInterface
      *  @param[in] enabled - Whether ComponentIntegrity is enabled
      *  @param[in] type - The security protocol type
      *  @param[in] typeVersion - The version of the security protocol
-     *  @param[in] lastUpdated - The time of the last update
-     *  @param[in] targetComponentURI - The object path of the target trusted
-		 *             component.
-     *  @param[in] componentsProtected - List of components that is protected
-		 *             by the target trusted component.
+     *  @param[in] lastUpdated - The time of the last update component.
      */
     ComponentIntegrity(sdbusplus::bus::bus& bus,  const char* path,
-                bool enabled,
-								sdbusplus::xyz::openbmc_project::server::ComponentIntegrity::SecurityTechnologyType type,
-								std::string& typeVersion, std::string& lastUpdated,
-								sdbusplus::message::object_path& targetComponentURI,
-							  std::vector<sdbusplus::message::object_path> componentsProtected,
-								sdbusplus::message::object_path& requester,
-								sdbusplus::message::object_path& requesterAuthentication,
-								sdbusplus::message::object_path& responderAuthentication,
-	              sdbusplus::xyz::openbmc_project::ComponentIntegrity::SPDM::server::IdentityAuthentication::VerificationStatus status);
+        bool enabled,
+        sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::ComponentIntegrity::SecurityTechnologyType type,
+        std::string& typeVersion,
+        std::string& lastUpdated,
+        sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::IdentityAuthentication::VerificationStatus status);
 
     /** @brief Implementation for SPDMGetSignedMeasurements
      *  This method generates an SPDM cryptographic signed statement
@@ -88,9 +77,9 @@ class ComponentIntegrity : public internal::ComponentIntegrityInterface
     std::tuple<sdbusplus::message::object_path, std::string,
 		    std::string, std::string, std::string, std::string>
         spdmGetSignedMeasurements(
-            std::vector<uint32_t> measurementIndices,
+            std::vector<size_t> measurementIndices,
             std::string nonce,
-            uint32_t slotId) override;
+            size_t slotId) override;
 
 };
 

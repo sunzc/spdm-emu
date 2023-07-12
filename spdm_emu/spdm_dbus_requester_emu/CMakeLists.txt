@@ -83,9 +83,6 @@ SET(spdm_requester_emu_LIBRARY
     debuglib
     spdm_requester_lib
     spdm_common_lib
-    ${CRYPTO_LIB_PATHS}
-    spdm_crypt_lib
-    spdm_crypt_ext_lib
     spdm_secured_message_lib
     spdm_transport_mctp_lib
     spdm_transport_pcidoe_lib
@@ -97,10 +94,13 @@ SET(spdm_requester_emu_LIBRARY
     pci_ide_km_requester_lib
     pci_tdisp_requester_lib
     cxl_ide_km_requester_lib
-    platform_lib
-    rnglib
+    spdm_crypt_lib
+    spdm_crypt_ext_lib
     cryptlib_${CRYPTO}
+    ${CRYPTO_LIB_PATHS}
+    rnglib
     malloclib
+    platform_lib
 )
 
 

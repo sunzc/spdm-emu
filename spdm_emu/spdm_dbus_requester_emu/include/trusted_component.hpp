@@ -6,12 +6,21 @@
 #include <sdbusplus/server/object.hpp>
 #include <string>
 #include <string_view>
-#include <xyz/openbmc_project/Chassis/TrustedComponent/server.hpp>
+#include <xyz/openbmc_project/Inventory/Item/TrustedComponent/server.hpp>
+#include <xyz/openbmc_project/Inventory/Source/PLDM/FRU/server.hpp>
+#include <xyz/openbmc_project/Common/UUID/server.hpp>
+#include <xyz/openbmc_project/Association/Definitions/server.hpp>
 
 namespace internal
 {
+    // TODO: FRU interface also has property named Version, which conflicts
+    // with Software/Version interface's property Version. Will use Version
+    // for firmwareVersion. How to specify which interface's property here? 
 using TrustedComponentInterface = sdbusplus::server::object_t<
-    sdbusplus::xyz::openbmc_project::Chassis::server::TrustedComponent>;
+    sdbusplus::xyz::openbmc_project::Association::server::Definitions,
+    sdbusplus::xyz::openbmc_project::Inventory::Item::server::TrustedComponent,
+    sdbusplus::xyz::openbmc_project::Inventory::Source::PLDM::server::FRU,
+    sdbusplus::xyz::openbmc_project::Common::server::UUID>;
 } // namespace internal
 
 namespace phosphor::trusted_component
@@ -39,18 +48,13 @@ class TrustedComponent : public internal::TrustedComponentInterface
      *  @param[in] firmwareVersion - Trusted component firmware version
      */
     TrustedComponent(sdbusplus::bus::bus& bus, const char* path,
-								sdbusplus::message::object_path& certificates,
-								std::string& firmwareVersion,
-								sdbusplus::message::object_path& activeSoftwareImage,
-								std::vector<sdbusplus::message::object_path>& componentIntegrity,
-								std::vector<sdbusplus::message::object_path>& componentsProtected,
-								sdbusplus::message::object_path& integratedInto,
-								std::vector<sdbusplus::message::object_path>& softwareImages,
-								std::string& manufacturer,
-								std::string& serialNumber,
-								std::string& sku,
-								sdbusplus::xyz::openbmc_project::Chassis::server::TrustedComponent::ComponentAttachType type,
-								std::string& uuid);
+        std::string& certificatesLocation,
+        std::string& firmwareVersion,
+        std::string& manufacturer,
+        std::string& serialNumber,
+        std::string& sku,
+        sdbusplus::xyz::openbmc_project::Inventory::Item::server::TrustedComponent::ComponentAttachType type,
+        std::string& uuid);
 
 };
 

@@ -169,6 +169,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
         SET(CMOCKA_FLAGS -std=gnu99 -Wpedantic -Wall -Wshadow -Wmissing-prototypes -Wcast-align -Werror=address -Wstrict-prototypes -Werror=strict-prototypes -Wwrite-strings -Werror=write-strings -Werror-implicit-function-declaration -Wpointer-arith -Werror=pointer-arith -Wdeclaration-after-statement -Werror=declaration-after-statement -Wreturn-type -Werror=return-type -Wuninitialized -Werror=uninitialized -Werror=strict-overflow -Wstrict-overflow=2 -Wno-format-zero-length -Wmissing-field-initializers -Wformat-security -Werror=format-security -fno-common -Wformat -fno-common -fstack-protector-strong)
 
         SET(CMAKE_AR gcc-ar)
+        #SET(CMAKE_CXX_COMPILER /opt/zhichuang/openbmc-builds/qemux86-64/tmp/work/core2-64-openbmc-linux/spdm-emu/1.0+git999-r1/recipe-sysroot-native/usr/bin/x86_64-openbmc-linux/x86_64-openbmc-linux-gcc-ar)
 
         if(NOT CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 9.3)
                 SET(CMAKE_C_ARCHIVE_FINISH true)
@@ -185,6 +186,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
         SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  --coverage -lgcov -fprofile-arcs -ftest-coverage")
         endif()
         SET(CMAKE_C_LINK_EXECUTABLE "<CMAKE_LINKER> <LINK_FLAGS> <OBJECTS> -o <TARGET> -Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group")
+        #SET(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> <LINK_FLAGS> <OBJECTS> -o <TARGET> -Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group")
 
     elseif(TOOLCHAIN STREQUAL "ARM_DS2022")
         if(ARCH STREQUAL "aarch64")
