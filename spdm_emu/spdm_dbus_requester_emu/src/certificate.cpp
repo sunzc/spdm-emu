@@ -9,6 +9,7 @@
 #include <sdbusplus/exception.hpp>
 #include <sdbusplus/message.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
+#include <fstream>
 
 namespace phosphor::certificate
 {
@@ -22,11 +23,16 @@ Certificate::Certificate(sdbusplus::bus::bus& bus, const char* path,
     std::string &filePath) :
     internal::CertificateInterface(bus, path)
 {
+    std::string pem_cert, cert_str;
+    std::ifstream cert_file(filePath.c_str());
+    cert_file >> cert_str;
+
     // TODO Parse cert from file, support only PEM chain.
     log<level::INFO>(filePath.c_str());
     log<level::INFO>("Certificate Instance Created!");
+
     // TODO Hardcode for testing
-    certificateString("test cert string");
+    certificateString(cert_str);
     subject("test subject");
     issuer("test issuer");
     keyUsage({"test keyusage1","test keyusage2"});

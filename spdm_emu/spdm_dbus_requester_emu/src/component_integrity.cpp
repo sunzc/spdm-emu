@@ -199,10 +199,10 @@ using ::sdbusplus::xyz::openbmc_project::Common::Error::InvalidArgument;
 
 ComponentIntegrity::ComponentIntegrity(sdbusplus::bus::bus& bus, const char* path,
     bool componentIntegrityEnabled,
-    sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::ComponentIntegrity::SecurityTechnologyType protocolType,
+    sdbusplus::xyz::openbmc_project::Attestation::server::ComponentIntegrity::SecurityTechnologyType protocolType,
     std::string& protocolTypeVersion,
     std::string& updatedTime,
-    sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::IdentityAuthentication::VerificationStatus status) :
+    sdbusplus::xyz::openbmc_project::Attestation::server::IdentityAuthentication::VerificationStatus status) :
     internal::ComponentIntegrityInterface(bus, path, action::defer_emit)
 {
 	this->enabled(componentIntegrityEnabled);

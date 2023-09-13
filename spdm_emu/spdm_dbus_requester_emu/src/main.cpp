@@ -1,6 +1,7 @@
 #include <phosphor-logging/log.hpp>
 #include <iostream>
 #include <cstring>
+#include <cstdlib>
 
 #include "component_integrity.hpp"
 #include "trusted_component.hpp"
@@ -20,7 +21,7 @@
 
 extern "C" {
     #include "spdm_requester_emu.h"
-    #include "test_c_header.h"
+    #include "dbus_get_certificate.h"
 }
 
 using namespace phosphor::logging;
@@ -123,15 +124,12 @@ int main(int argc, char* argv[]) {
 	//        responderAuthentication("/xyz/openbmc_project/certs/systems/devices/cert1");
 
   /* TODO: Example type info (using GF as example) */
-	auto type = sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::ComponentIntegrity::SecurityTechnologyType::SPDM;
+	auto type = sdbusplus::xyz::openbmc_project::Attestation::server::ComponentIntegrity::SecurityTechnologyType::SPDM;
 	auto attachType = sdbusplus::xyz::openbmc_project::Inventory::Item::server::TrustedComponent::ComponentAttachType::Integrated;
-	auto verificationStatus = sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::IdentityAuthentication::VerificationStatus::Success;
+	auto verificationStatus = sdbusplus::xyz::openbmc_project::Attestation::server::IdentityAuthentication::VerificationStatus::Success;
 
   /* Associations */
   AssociationList componentIntegrityAssocs{};
-
-  static boost::asio::io_context ioc;
-  static auto conn = std::make_shared<sdbusplus::asio::connection>(ioc);
 
   std::string s = "spdm_requester_emu";
   char* char_array = new char[40];
@@ -139,6 +137,11 @@ int main(int argc, char* argv[]) {
   printf("%s version 0.1\n", "spdm_dbus_requester_emu");
   srand((unsigned int)time(NULL));
   process_args(char_array, argc, argv);
+
+  printf("============ DBUG =========\n");
+
+  static boost::asio::io_context ioc;
+  static auto conn = std::make_shared<sdbusplus::asio::connection>(ioc);
 
   /* TODO: Request example service name */
   conn->request_name("xyz.openbmc_project.SPDM");
@@ -167,6 +170,10 @@ int main(int argc, char* argv[]) {
 	    bus, tcObjPath.c_str(), certsLocation, firmwareVersion, manufacturer, SN, sku, attachType, uuid);
 
 	// TODO do GetCertificates and populate certs objects.
+  std::string der_cert_path = "/tmp/cert.der";
+  dbus_get_certificate(der_cert_path.c_str());
+  std::string cmd = "openssl x509 -inform der -in " +  der_cert_path + " -out " + certFile;
+  std::system(cmd.c_str());
   phosphor::certificate::Certificate cert(bus, GFCertObjPath.c_str(), certFile);
 
 
@@ -190,7 +197,7 @@ int main(int argc, char* argv[]) {
 
   log<level::ERR>("new HelloWorld D-Bus Agent started!");
 
-	ioc.run();
+  ioc.run();
 
   log<level::ERR>("HelloWorld D-Bus Agent exited!");
 

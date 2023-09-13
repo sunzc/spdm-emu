@@ -15,7 +15,7 @@ namespace
 {
 using ::phosphor::logging::level;
 using ::phosphor::logging::log;
-using ::sdbusplus::xyz::openbmc_project::Common::Error::InvalidArgument;
+//using ::sdbusplus::xyz::openbmc_project::Common::Error::InvalidArgument;
 } // namespace
 
 
@@ -30,11 +30,11 @@ TrustedComponent::TrustedComponent(sdbusplus::bus::bus& bus,
     std::string& uuid) :
         internal::TrustedComponentInterface(bus, path, action::defer_emit)
 {
-    this->version(firmwareVersion);
+    //this->version(firmwareVersion);
     this->certificatesLocation(certificatesLocation);
     this->manufacturer(manufacturer);
-    this->sn(serialNumber);
-    this->sku(sku);
+    this->serialNumber(serialNumber);
+    //this->sku(sku);
     this->trustedComponentType(type);
     this->uuid(uuid);
     

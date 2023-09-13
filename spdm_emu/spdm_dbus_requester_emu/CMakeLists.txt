@@ -56,7 +56,7 @@ SET(src_spdm_requester_emu_copy
     ${PROJECT_SOURCE_DIR}/spdm_emu/spdm_requester_emu/spdm_requester_emu.c
 )
 
-#SET(src_test_c_func src/test_c_header.c)
+SET(src_test_c_func src/dbus_get_certificate.c)
 
 SET(src_spdm_requester_emu_helper
     ${PROJECT_SOURCE_DIR}/spdm_emu/spdm_requester_emu/spdm_requester_spdm.c
@@ -75,7 +75,7 @@ SET(src_spdm_requester_emu_helper
 )
 
 ADD_LIBRARY(spdm_requester_emu_helper_lib STATIC ${src_spdm_requester_emu_helper})
-#ADD_LIBRARY(test_c_lib STATIC ${src_test_c_func})
+ADD_LIBRARY(test_c_lib STATIC ${src_test_c_func})
 
 SET(spdm_requester_emu_LIBRARY
     spdm_requester_emu_helper_lib
@@ -106,7 +106,7 @@ SET(spdm_requester_emu_LIBRARY
 
 #include_directories (${CMAKE_CURRENT_BINARY_DIR})
 add_executable (dbus_agent_spdm_req ${SRC_FILES})
-#target_link_libraries(dbus_agent_spdm_req test_c_lib)
+target_link_libraries(dbus_agent_spdm_req test_c_lib)
 target_link_libraries(dbus_agent_spdm_req ${spdm_requester_emu_LIBRARY})
 target_link_libraries(dbus_agent_spdm_req ${spdm_requester_emu_LIBRARY})
 target_link_libraries (dbus_agent_spdm_req ${SYSTEMD_LIBRARIES})

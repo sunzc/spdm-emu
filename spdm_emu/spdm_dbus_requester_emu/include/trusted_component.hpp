@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 #include <xyz/openbmc_project/Inventory/Item/TrustedComponent/server.hpp>
-#include <xyz/openbmc_project/Inventory/Source/PLDM/FRU/server.hpp>
+#include <xyz/openbmc_project/Inventory/Decorator/Asset/server.hpp>
 #include <xyz/openbmc_project/Common/UUID/server.hpp>
 #include <xyz/openbmc_project/Association/Definitions/server.hpp>
 
@@ -19,7 +19,7 @@ namespace internal
 using TrustedComponentInterface = sdbusplus::server::object_t<
     sdbusplus::xyz::openbmc_project::Association::server::Definitions,
     sdbusplus::xyz::openbmc_project::Inventory::Item::server::TrustedComponent,
-    sdbusplus::xyz::openbmc_project::Inventory::Source::PLDM::server::FRU,
+    sdbusplus::xyz::openbmc_project::Inventory::Decorator::server::Asset,
     sdbusplus::xyz::openbmc_project::Common::server::UUID>;
 } // namespace internal
 
