@@ -57,10 +57,13 @@ void dump_certificate(uint8_t *cert, size_t len) {
     printf("\n");
 }
 
-/* This function is called by the dbus daemon to get certificate from
- * device and store it in fname. Note, according to SPDM spec, the cert
- * is in DER format. */ 
-libspdm_return_t dbus_get_certificate(const char *fname) {
+/**
+ * For emulation, it is setting up a socket connection with responder.
+ * Note, for transport layer, it assumes PCI DOE and nitialize pci doe
+ * requester. The last step is to initialize spdm context.
+ */
+libspdm_return_t set_up_device_connection()
+{
     // Generic
     libspdm_return_t status;
 
@@ -69,6 +72,92 @@ libspdm_return_t dbus_get_certificate(const char *fname) {
     SOCKET platform_socket;
     size_t response;
     size_t response_size;
+
+    // Emulation only: using socket to connect Requester and Responder
+    // To simplify emulation:
+    //   ASSUME m_use_transport_layer == SOCKET_TRANSPORT_TYPE_PCI_DOE
+    //   ASSUME m_use_tcp_handshake == SOCKET_TCP_NO_HANDSHAKE
+    //   ASSUME linux only, no microsoft windows support
+    result = init_client(&platform_socket, DEFAULT_SPDM_PLATFORM_PORT);
+    if (!result) {
+        return LIBSPDM_STATUS_INVALID_STATE_LOCAL;
+    }
+
+    m_socket = platform_socket;
+
+    response_size = sizeof(m_receive_buffer);
+    result = communicate_platform_data(
+        m_socket,
+        SOCKET_SPDM_COMMAND_TEST,
+        (uint8_t *)"Client Hello!",
+        sizeof("Client Hello!"), &response,
+        &response_size, m_receive_buffer);
+    if (!result) {
+        status = LIBSPDM_STATUS_INVALID_STATE_LOCAL;
+        goto done;
+    }
+
+    // PCI DOE Set up
+    status = pci_doe_init_requester ();
+    if (LIBSPDM_STATUS_IS_ERROR(status)) {
+        printf("pci_doe_init_requester - %lx\n", (size_t)status);
+        goto done;
+    }
+
+    // SPDM Requester Init
+    m_spdm_context = spdm_client_init();
+    if (m_spdm_context == NULL) {
+        status = LIBSPDM_STATUS_INVALID_STATE_LOCAL;
+        goto done;
+    }
+
+    return LIBSPDM_STATUS_SUCCESS;
+
+done:
+    response_size = 0;
+    result = communicate_platform_data(
+        m_socket, SOCKET_SPDM_COMMAND_SHUTDOWN - m_exe_mode,
+        NULL, 0, &response, &response_size, NULL);
+    
+    if (m_spdm_context != NULL) {
+        libspdm_deinit_context(m_spdm_context);
+        free(m_spdm_context);
+    }
+    
+    closesocket(m_socket);
+
+    return status;
+}
+
+libspdm_return_t tear_down_device_connection()
+{
+    // Socket to emulate transport layer
+    bool result;
+    size_t response;
+    size_t response_size;
+    response_size = 0;
+
+    result = communicate_platform_data(
+        m_socket, SOCKET_SPDM_COMMAND_SHUTDOWN - m_exe_mode,
+        NULL, 0, &response, &response_size, NULL);
+    
+    if (m_spdm_context != NULL) {
+        libspdm_deinit_context(m_spdm_context);
+        free(m_spdm_context);
+    }
+    
+    closesocket(m_socket);
+
+    return LIBSPDM_STATUS_SUCCESS;
+}
+
+
+/* This function is called by the dbus daemon to get certificate from
+ * device and store it in fname. Note, according to SPDM spec, the cert
+ * is in DER format. */ 
+libspdm_return_t dbus_get_certificate(const char *fname) {
+    // Generic
+    libspdm_return_t status;
 
     // SPDM protocol related
     void *context;
@@ -84,42 +173,6 @@ libspdm_return_t dbus_get_certificate(const char *fname) {
     // file ops
     size_t hash_size = 0;
     FILE *fptr;
-
-    // Emulation only: using socket to connect Requester and Responder
-    // To simplify emulation:
-    //   ASSUME m_use_transport_layer == SOCKET_TRANSPORT_TYPE_PCI_DOE
-    //   ASSUME m_use_tcp_handshake == SOCKET_TCP_NO_HANDSHAKE
-    //   ASSUME linux only, no microsoft windows support
-    result = init_client(&platform_socket, DEFAULT_SPDM_PLATFORM_PORT);
-    if (!result) {
-        return false;
-    }
-
-    m_socket = platform_socket;
-
-    response_size = sizeof(m_receive_buffer);
-    result = communicate_platform_data(
-        m_socket,
-        SOCKET_SPDM_COMMAND_TEST,
-        (uint8_t *)"Client Hello!",
-        sizeof("Client Hello!"), &response,
-        &response_size, m_receive_buffer);
-    if (!result) {
-        goto done;
-    }
-
-    // PCI DOE Set up
-    status = pci_doe_init_requester ();
-    if (LIBSPDM_STATUS_IS_ERROR(status)) {
-        printf("pci_doe_init_requester - %lx\n", (size_t)status);
-        goto done;
-    }
-
-    // SPDM Requester Init
-    m_spdm_context = spdm_client_init();
-    if (m_spdm_context == NULL) {
-        goto done;
-    }
 
     context = m_spdm_context;
 
@@ -181,27 +234,43 @@ libspdm_return_t dbus_get_certificate(const char *fname) {
         goto done;
     }
 
-    printf("cert_chain:%p, der_cert:%p, hash_size:%lu, cert_size:%lu, first byte: %02x\n",cert_chain, cert_chain + 4 + hash_size, hash_size, cert_chain_size, cert_chain[4+hash_size]);
+    printf("cert_chain:%p, der_cert:%p, hash_size:%lu, cert_size:%lu, first byte: %02x\n",
+            cert_chain, cert_chain + 4 + hash_size, hash_size, cert_chain_size, cert_chain[4+hash_size]);
     fwrite(cert_chain + 4 + hash_size, sizeof(uint8_t), cert_chain_size - 4 - hash_size, fptr);
 
     printf("========== %s ===========\n",__func__);
     dump_certificate(cert_chain, cert_chain_size);
 
-done:
-    response_size = 0;
-    result = communicate_platform_data(
-        m_socket, SOCKET_SPDM_COMMAND_SHUTDOWN - m_exe_mode,
-        NULL, 0, &response, &response_size, NULL);
-    
-    if (m_spdm_context != NULL) {
-        libspdm_deinit_context(m_spdm_context);
-        free(m_spdm_context);
-    }
-    
-    closesocket(platform_socket);
-
     fclose(fptr);
+#endif /*(LIBSPDM_ENABLE_CAPABILITY_CERT_CAP && LIBSPDM_ENABLE_CAPABILITY_CHAL_CAP)*/
 
     return LIBSPDM_STATUS_SUCCESS;
-#endif /*(LIBSPDM_ENABLE_CAPABILITY_CERT_CAP && LIBSPDM_ENABLE_CAPABILITY_CHAL_CAP)*/
+}
+
+
+/**
+ * This function is called by the dbus daemon to get signed measurements from
+ * device. 
+ */ 
+libspdm_return_t dbus_get_certificate(const char *fname) {
+    libspdm_return_t status;
+    uint8_t number_of_block;
+    uint32_t measurement_record_length;
+    uint8_t measurement_record[LIBSPDM_MAX_MEASUREMENT_RECORD_SIZE];
+    uint8_t request_attribute;
+    uint8_t requester_nonce_in[SPDM_NONCE_SIZE];
+    uint8_t requester_nonce[SPDM_NONCE_SIZE];
+    uint8_t responder_nonce[SPDM_NONCE_SIZE];
+    uint8_t opaque_data[SPDM_MAX_OPAQUE_DATA_SIZE];
+    size_t opaque_data_size;
+
+    request_attribute = SPDM_GET_MEASUREMENTS_REQUEST_ATTRIBUTES_GENERATE_SIGNATURE;
+
+    measurement_record_length = sizeof(measurement_record);
+
+    for (int index = 0; index < SPDM_NONCE_SIZE; index++) {
+        requester_nonce_in[index] = 0x5c;
+        requester_nonce[index] = 0x00;
+        responder_nonce[index] = 0x00;
+    }
 }
