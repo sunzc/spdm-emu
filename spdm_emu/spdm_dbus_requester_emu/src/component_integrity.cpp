@@ -12,180 +12,7 @@
 
 extern "C" {
     #include "spdm_requester_emu.h"
-    uint8_t m_receive_buffer[LIBSPDM_MAX_SENDER_RECEIVER_BUFFER_SIZE];
-    extern SOCKET m_socket;
-    extern void *m_spdm_context;
-    extern void *m_scratch_buffer;
-    uint8_t m_other_slot_id = 0;
-    void *spdm_client_init(void);
-    libspdm_return_t pci_doe_init_requester(void);
-    SOCKET CreateSocketAndHandShake(SOCKET *sock, uint16_t port_number);
-    bool communicate_platform_data(SOCKET socket, size_t command,
-                                   const uint8_t *send_buffer, size_t bytes_to_send,
-                                   size_t *response,
-                                   size_t *bytes_to_receive,
-                                   uint8_t *receive_buffer);
-    #if LIBSPDM_ENABLE_CAPABILITY_MEAS_CAP
-    libspdm_return_t do_measurement_via_spdm(const size_t *session_id);
-    #endif /*LIBSPDM_ENABLE_CAPABILITY_MEAS_CAP*/
-    
-    #if (LIBSPDM_ENABLE_CAPABILITY_CERT_CAP && LIBSPDM_ENABLE_CAPABILITY_CHAL_CAP)
-    libspdm_return_t do_authentication_via_spdm(void);
-    #endif /*(LIBSPDM_ENABLE_CAPABILITY_CERT_CAP && LIBSPDM_ENABLE_CAPABILITY_CHAL_CAP)*/
-    
-    libspdm_return_t do_session_via_spdm(bool use_psk);
-    libspdm_return_t do_certificate_provising_via_spdm(size_t* session_id);
-    
-    bool platform_client_routine(uint16_t port_number)
-    {
-        SOCKET platform_socket;
-        bool result;
-        size_t response;
-        size_t response_size;
-        libspdm_return_t status;
-    
-        if (m_use_transport_layer == SOCKET_TRANSPORT_TYPE_TCP &&
-            m_use_tcp_handshake == SOCKET_TCP_HANDSHAKE) {
-            m_socket = CreateSocketAndHandShake(&platform_socket, port_number);
-            if (m_socket == INVALID_SOCKET) {
-                printf("Create platform service socket fail\n");
-    #ifdef _MSC_VER
-                WSACleanup();
-    #endif
-                return false;
-            }
-    
-            printf("Continuing with SPDM flow...\n");
-        }
-        else {
-            result = init_client(&platform_socket, port_number);
-            if (!result) {
-    #ifdef _MSC_VER
-                WSACleanup();
-    #endif
-                return false;
-            }
-    
-            m_socket = platform_socket;
-        }
-    
-        if (m_use_transport_layer != SOCKET_TRANSPORT_TYPE_NONE) {
-            response_size = sizeof(m_receive_buffer);
-            result = communicate_platform_data(
-                m_socket,
-                SOCKET_SPDM_COMMAND_TEST,
-                (uint8_t *)"Client Hello!",
-                sizeof("Client Hello!"), &response,
-                &response_size, m_receive_buffer);
-            if (!result) {
-                goto done;
-            }
-        }
-    
-        if (m_use_transport_layer == SOCKET_TRANSPORT_TYPE_PCI_DOE) {
-            status = pci_doe_init_requester ();
-            if (LIBSPDM_STATUS_IS_ERROR(status)) {
-                printf("pci_doe_init_requester - %x\n", (size_t)status);
-                goto done;
-            }
-        }
-    
-        m_spdm_context = spdm_client_init();
-        if (m_spdm_context == NULL) {
-            goto done;
-        }
-    
-        /* Do test - begin*/
-    #if (LIBSPDM_ENABLE_CAPABILITY_CERT_CAP && LIBSPDM_ENABLE_CAPABILITY_CHAL_CAP)
-        status = do_authentication_via_spdm();
-        if (LIBSPDM_STATUS_IS_ERROR(status)) {
-            printf("do_authentication_via_spdm - %x\n", (size_t)status);
-            goto done;
-        }
-    #endif /*(LIBSPDM_ENABLE_CAPABILITY_CERT_CAP && LIBSPDM_ENABLE_CAPABILITY_CHAL_CAP)*/
-    
-    #if LIBSPDM_ENABLE_CAPABILITY_MEAS_CAP
-        if ((m_exe_connection & EXE_CONNECTION_MEAS) != 0) {
-            status = do_measurement_via_spdm(NULL);
-            if (LIBSPDM_STATUS_IS_ERROR(status)) {
-                printf("do_measurement_via_spdm - %x\n",
-                       (size_t)status);
-                goto done;
-            }
-        }
-    #endif /*LIBSPDM_ENABLE_CAPABILITY_MEAS_CAP*/
-        /* when use --trans NONE, skip secure session  */
-        if (m_use_transport_layer == SOCKET_TRANSPORT_TYPE_NONE) {
-            if (m_use_version >= SPDM_MESSAGE_VERSION_12) {
-                status = do_certificate_provising_via_spdm(NULL);
-                if (LIBSPDM_STATUS_IS_ERROR(status)) {
-                    printf("do_certificate_provising_via_spdm - %x\n",
-                           (size_t)status);
-                    goto done;
-                }
-            }
-        }
-        else
-        {
-    #if (LIBSPDM_ENABLE_CAPABILITY_KEY_EX_CAP || LIBSPDM_ENABLE_CAPABILITY_PSK_EX_CAP)
-            if (m_use_version >= SPDM_MESSAGE_VERSION_11) {
-                if ((m_exe_session & EXE_SESSION_KEY_EX) != 0) {
-                    status = do_session_via_spdm(false);
-                    if (LIBSPDM_STATUS_IS_ERROR(status)) {
-                        printf("do_session_via_spdm - %x\n",
-                               (size_t)status);
-                        goto done;
-                    }
-                }
-    
-                if ((m_exe_session & EXE_SESSION_PSK) != 0) {
-                    status = do_session_via_spdm(true);
-                    if (LIBSPDM_STATUS_IS_ERROR(status)) {
-                        printf("do_session_via_spdm - %x\n",
-                               (size_t)status);
-                        goto done;
-                    }
-                }
-                if ((m_exe_session & EXE_SESSION_KEY_EX) != 0) {
-                    if (m_other_slot_id != 0) {
-                        m_use_slot_id = m_other_slot_id;
-                        status = do_session_via_spdm(false);
-                        if (LIBSPDM_STATUS_IS_ERROR(status)) {
-                            printf("do_session_via_spdm - %x\n",
-                                   (size_t)status);
-                            goto done;
-                        }
-                    }
-                }
-            }
-    #endif /*(LIBSPDM_ENABLE_CAPABILITY_KEY_EX_CAP || LIBSPDM_ENABLE_CAPABILITY_PSK_EX_CAP)*/
-        }
-        /* Do test - end*/
-    
-    done:
-        response_size = 0;
-        result = communicate_platform_data(
-            m_socket, SOCKET_SPDM_COMMAND_SHUTDOWN - m_exe_mode,
-            NULL, 0, &response, &response_size, NULL);
-    
-        if (m_spdm_context != NULL) {
-            libspdm_deinit_context(m_spdm_context);
-            free(m_spdm_context);
-            free(m_scratch_buffer);
-        }
-    
-        closesocket(platform_socket);
-        if (m_use_transport_layer == SOCKET_TRANSPORT_TYPE_TCP &&
-            m_use_tcp_handshake == SOCKET_TCP_HANDSHAKE) {
-            closesocket(m_socket);
-        }
-    
-    #ifdef _MSC_VER
-        WSACleanup();
-    #endif
-    
-        return true;
-    }
+    #include "dbus_get_certificate.h"
 }
 
 namespace phosphor::component_integrity
@@ -219,6 +46,18 @@ ComponentIntegrity::~ComponentIntegrity()
     log<level::INFO>("ComponentIntegrity Instance Destroyed!");
 }
 
+uint8_t hex2byte(char c)
+{
+    if (c >= '0' && c <='9')
+        return (uint8_t)(c - '0');
+    else if (c >= 'a' && c <= 'f')
+        return (uint8_t)(c - 'a') + 10;
+    else if (c >= 'A' && c <= 'F')
+        return (uint8_t)(c - 'A') + 10;
+    else
+        throw std::invalid_argument("Invalid hex string");
+}
+
 std::tuple<sdbusplus::message::object_path, std::string,
     std::string, std::string, std::string, std::string>
     ComponentIntegrity::spdmGetSignedMeasurements(
@@ -233,20 +72,29 @@ std::tuple<sdbusplus::message::object_path, std::string,
 	std::string signedMeasurements("SIGNEDMEAUREMENTS");
 	std::string signedAlg("SIGNINGALG");
 	std::string version("VERSION_1.0");
+    int i;
+    libspdm_return_t status;
 
-    if (m_use_transport_layer == SOCKET_TRANSPORT_TYPE_TCP) {
-        /* Port number 4194 for SPDM */
-        platform_client_routine(TCP_SPDM_PLATFORM_PORT);
+    // convert c++ vector to c array
+    size_t* indices = new size_t[measurementIndices.size()];
+    for (i = 0; i < measurementIndices.size(); i++)
+        indices[i] = measurementIndices[i];
+
+
+    /* hexstring to byte array: two hex char map to 1 byte */
+    assert(nonce.size() % 2 == 0 && nonce.size() > 0); // make sure hex string is convertable
+    uint8_t *nonce_in = new size_t[nonce.size()/2];
+    for (i = 0; i < nonce.size()/2; i+=2)
+        nonce_in[i] = hex2byte(nonce[i*2]) << 4 | hex2byte(nonce[i*2 + 1]);
+    
+    // No need to return measurement blocks, all stored in L2 log.
+    status = dbus_get_signed_measurements(slot_id, nonce_in, indices,
+            measurementIndices.size());
+    if (LIBSPDM_STATUS_IS_ERROR(status)) {
+        // TODO throw error msg or set measurements empty
+	    signedMeasurements("");
     }
-    else {
-        platform_client_routine(DEFAULT_SPDM_PLATFORM_PORT);
-    }
 
-    printf("Client stopped\n");
-
-    close_pcap_packet_file();
-
-	// TODO set up SPDM channel and do GetMeasurements
 	auto response = make_tuple(certificate, hashingAlg, pubKey,
                                signedMeasurements, signedAlg, version);
     return response;

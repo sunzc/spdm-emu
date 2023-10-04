@@ -31,13 +31,6 @@ extern uint32_t m_use_transport_layer;
 extern uint32_t m_use_tcp_handshake;
 extern uint8_t m_use_slot_id;
 extern uint32_t m_use_hash_algo;
-SOCKET CreateSocketAndHandShake(SOCKET *sock, uint16_t port_number);
-bool init_client(SOCKET *sock, uint16_t port);
-bool communicate_platform_data(SOCKET socket, size_t command,
-                               const uint8_t *send_buffer, size_t bytes_to_send,
-                               size_t *response,
-                               size_t *bytes_to_receive,
-                               uint8_t *receive_buffer);
 
 // PCIE DOE
 libspdm_return_t pci_doe_init_requester(void);
@@ -286,15 +279,6 @@ libspdm_return_t dbus_get_signed_measurements(size_t slot_id, uint8_t* nonce, si
         goto done;
     }
 
-    // request_attribute = SPDM_GET_MEASUREMENTS_REQUEST_ATTRIBUTES_GENERATE_SIGNATURE;
-    // measurement_record_length = sizeof(measurement_record);
-
-    // for (int index = 0; index < SPDM_NONCE_SIZE; index++) {
-    //     requester_nonce_in[index] = nonce[index];
-    //     requester_nonce[index] = 0x00;
-    //     responder_nonce[index] = 0x00;
-    // }
-
     context = m_spdm_context;
 
     request_attribute = m_use_measurement_attribute;
@@ -341,6 +325,13 @@ libspdm_return_t dbus_get_signed_measurements(size_t slot_id, uint8_t* nonce, si
             request_attribute = m_use_measurement_attribute |
                                 SPDM_GET_MEASUREMENTS_REQUEST_ATTRIBUTES_GENERATE_SIGNATURE;
 
+            /* initialize nonce */
+            for (int index = 0; index < SPDM_NONCE_SIZE; index++) {
+                requester_nonce_in[index] = nonce[index];
+                requester_nonce[index] = 0x00;
+                responder_nonce[index] = 0x00;
+            }
+
             status = libspdm_get_measurement_ex(
                 context, NULL, request_attribute,
                 indices[i], slot_id & 0xF, NULL, &number_of_block,
@@ -371,8 +362,9 @@ libspdm_return_t dbus_get_signed_measurements(size_t slot_id, uint8_t* nonce, si
         goto done;
     }
 
-    /* Base64 encode the measurements */
-    // TODO
+    // Note, we can safely return here. All we need from get measurements is
+    // the L2 Log, which can be calculated from spdm_context.
+    //
 	// See library//spdm_requester_lib/libspdm_req_get_measurements.c on how to get everything for
 	//   component_integrity.cpp 
     //      ComponentIntegrity::spdmGetSignedMeasurements(

@@ -107,23 +107,7 @@ int main(int argc, char* argv[]) {
 	auto uuid = std::string("UUID_Example");
 	auto SN = std::string("SerialNumber_Example");
 	
-  /* TODO: Example path refered by example object */
-	//sdbusplus::message::object_path componentPath(tcObjPath);
-	//sdbusplus::message::object_path
-	//        activeSoftwareImage("/xyz/openbmc_project/software/software01");
-	//sdbusplus::message::object_path componentIntegrityPath(ciObjPath);
-	//std::vector<sdbusplus::message::object_path>
-	//        componentIntegrityList = {componentIntegrityPath};
-	//sdbusplus::message::object_path protectedComponentPath(pcObjPath);
-	//std::vector<sdbusplus::message::object_path>
-	//        protectedComponentsList = {protectedComponentPath};
-	//sdbusplus::message::object_path integratedInto(pcObjPath);
-	//sdbusplus::message::object_path
-	//        requesterAuthentication("/xyz/openbmc_project/certs/systems/system01/bmc0_cert1");
-	//sdbusplus::message::object_path
-	//        responderAuthentication("/xyz/openbmc_project/certs/systems/devices/cert1");
-
-  /* TODO: Example type info (using GF as example) */
+    /* TODO: Example type info (using GF as example) */
 	auto type = sdbusplus::xyz::openbmc_project::Attestation::server::ComponentIntegrity::SecurityTechnologyType::SPDM;
 	auto attachType = sdbusplus::xyz::openbmc_project::Inventory::Item::server::TrustedComponent::ComponentAttachType::Integrated;
 	auto verificationStatus = sdbusplus::xyz::openbmc_project::Attestation::server::IdentityAuthentication::VerificationStatus::Success;
@@ -161,15 +145,14 @@ int main(int argc, char* argv[]) {
   sdbusplus::server::manager::manager tcObjManager(bus, tcObjPath.c_str());
   sdbusplus::server::manager::manager certObjManager(bus, GFCertObjPath.c_str());
 
-  // TODO: Create more dbus objects for certs, system, software images,
-
   phosphor::component_integrity::ComponentIntegrity componentIntegrity(
 	    bus, ciObjPath.c_str(), true, type, typeVersion, lastUpdated, verificationStatus);
 
   phosphor::trusted_component::TrustedComponent trustedComponent(
 	    bus, tcObjPath.c_str(), certsLocation, firmwareVersion, manufacturer, SN, sku, attachType, uuid);
 
-	// TODO do GetCertificates and populate certs objects.
+  // do GetCertificates and populate certs objects.
+  // TODO use library function to convert Certificate from der to PEM format.
   std::string der_cert_path = "/tmp/cert.der";
   dbus_get_certificate(der_cert_path.c_str());
   std::string cmd = "openssl x509 -inform der -in " +  der_cert_path + " -out " + certFile;
