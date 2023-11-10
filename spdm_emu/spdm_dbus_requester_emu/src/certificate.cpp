@@ -10,6 +10,7 @@
 #include <sdbusplus/message.hpp>
 #include <xyz/openbmc_project/Common/error.hpp>
 #include <fstream>
+#include <iostream>
 
 namespace phosphor::certificate
 {
@@ -25,9 +26,16 @@ Certificate::Certificate(sdbusplus::bus::bus& bus, const char* path,
 {
     std::string pem_cert, cert_str;
     std::ifstream cert_file(filePath.c_str());
-    cert_file >> cert_str;
+    if (cert_file.is_open()) {
+        cert_str = std::string((std::istreambuf_iterator<char>(cert_file)),
+                    std::istreambuf_iterator<char>());
+        cert_file.close();
+    } else {
+        std::cout << "Error opening file!" << std::endl;
+        throw std::runtime_error("Error opening cert file!");
+    }
 
-    // TODO Parse cert from file, support only PEM chain.
+    // Parse cert from file, support only PEM chain.
     log<level::INFO>(filePath.c_str());
     log<level::INFO>("Certificate Instance Created!");
 

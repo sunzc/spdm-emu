@@ -11,6 +11,10 @@
 #include <xyz/openbmc_project/Attestation/MeasurementSet/server.hpp>
 #include <xyz/openbmc_project/Association/Definitions/server.hpp>
 
+extern "C" {
+    #include "spdm_cma_req.h"
+}
+
 namespace internal
 {
 using ComponentIntegrityInterface = sdbusplus::server::object_t<
@@ -50,6 +54,7 @@ class ComponentIntegrity : public internal::ComponentIntegrityInterface
      */
     ComponentIntegrity(sdbusplus::bus::bus& bus,  const char* path,
         bool enabled,
+        spdm_conn_t *spdm_conn,
         sdbusplus::xyz::openbmc_project::Attestation::server::ComponentIntegrity::SecurityTechnologyType type,
         std::string& typeVersion,
         std::string& lastUpdated,
@@ -80,6 +85,9 @@ class ComponentIntegrity : public internal::ComponentIntegrityInterface
             std::vector<size_t> measurementIndices,
             std::string nonce,
             size_t slotId) override;
+
+  private:
+        spdm_conn_t *spdm_conn;
 
 };
 
