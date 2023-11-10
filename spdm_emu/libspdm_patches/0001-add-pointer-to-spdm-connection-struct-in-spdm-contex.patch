@@ -1,0 +1,27 @@
+From 01066977acaaf4c1832578843c6c3fddfd7f1c76 Mon Sep 17 00:00:00 2001
+From: Zhichuang Sun <zhichuang@google.com>
+Date: Fri, 10 Nov 2023 14:56:29 -0800
+Subject: [PATCH] add pointer to spdm connection struct in spdm context
+
+Signed-off-by: Zhichuang Sun <zhichuang@google.com>
+---
+ include/internal/libspdm_common_lib.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/include/internal/libspdm_common_lib.h b/include/internal/libspdm_common_lib.h
+index 88cd585de5..669174d155 100644
+--- a/include/internal/libspdm_common_lib.h
++++ b/include/internal/libspdm_common_lib.h
+@@ -441,6 +441,9 @@ typedef struct {
+ typedef struct {
+     uint32_t version;
+ 
++    /* managing per-connection resources, conn is defined by spdm requester */
++    void *conn;
++
+     /* IO information */
+     libspdm_device_send_message_func send_message;
+     libspdm_device_receive_message_func receive_message;
+-- 
+2.42.0.869.gea05f2083d-goog
+
